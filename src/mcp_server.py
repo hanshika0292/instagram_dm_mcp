@@ -21,6 +21,18 @@ This server is used to send messages to a user on Instagram.
 """
 
 client = Client()
+# Space out private-API requests so traffic looks less automated
+client.delay_range = [1, 3]
+
+
+def _no_interactive_prompt(username, choice=None):
+    # instagrapi's default handlers call input(), which would read the MCP stdio pipe and hang
+    raise RuntimeError("Instagram asked for verification. Log in again in a terminal to refresh the session file.")
+
+
+client.challenge_code_handler = _no_interactive_prompt
+client.change_password_handler = _no_interactive_prompt
+
 
 mcp = FastMCP(
    name="Instagram DMs",
@@ -947,14 +959,16 @@ if __name__ == "__main__":
        SESSION_FILE = Path(f"{username}_session.json")
        if SESSION_FILE.exists():
            logger.info(f"Loading existing session from {SESSION_FILE}")
+           # The session is used as-is, without login(): on an expired session, login() falls back to
+           # password login, which Instagram often rejects (and which alerts the account owner's phone).
+           # Tool calls then fail with login_required; delete the session file and restart to log in again.
            # Sessions saved by instagrapi 2.x keep its outdated app version unless overridden
            client.load_settings(SESSION_FILE, override_app_version=True)
-       
-       client.login(username, password)
-       
-       # Save session for future use to avoid repeated fresh authentication
-       client.dump_settings(SESSION_FILE)
-       logger.info(f"Session saved to {SESSION_FILE}")
+       else:
+           client.login(username, password)
+           # Save session for future use to avoid repeated fresh authentication
+           client.dump_settings(SESSION_FILE)
+           logger.info(f"Session saved to {SESSION_FILE}")
        
        logger.info("Successfully logged in to Instagram")
        mcp.run(transport="stdio")
