@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 import os
 from dotenv import load_dotenv
 import logging
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -203,6 +204,48 @@ def _shared_post_info(m) -> Optional[Dict[str, Any]]:
             "video_duration": None,
         }
     return None
+
+
+@mcp.tool()
+def list_messages_compact(thread_id: str, amount: int = 50, since_timestamp: Optional[str] = None) -> Dict[str, Any]:
+    """Get a compact view of messages in a DM thread: who sent what, and any shared reel/post.
+
+    Much smaller than list_messages; use this to scan a thread for shared reels.
+
+    Args:
+        thread_id: The thread ID to fetch messages from.
+        amount: Number of most recent messages to fetch (default 50).
+        since_timestamp: Optional ISO timestamp; only messages strictly newer than this are returned.
+    Returns:
+        A dictionary with success status and the messages, oldest first.
+    """
+    if not thread_id:
+        return {"success": False, "message": "Thread ID must be provided."}
+    try:
+        since = datetime.fromisoformat(since_timestamp) if since_timestamp else None
+        if since and since.tzinfo:
+            # instagrapi message timestamps are naive local time
+            since = since.astimezone().replace(tzinfo=None)
+        thread = client.direct_thread(thread_id, amount)
+        usernames = {str(u.pk): u.username for u in thread.users}
+        result_msgs = []
+        for m in thread.messages:
+            if since and m.timestamp <= since:
+                continue
+            result_msgs.append({
+                "message_id": m.id,
+                "timestamp": m.timestamp.isoformat(),
+                "sender": "me" if m.is_sent_by_viewer or str(m.user_id) == str(client.user_id)
+                          else usernames.get(str(m.user_id), m.user_id),
+                "item_type": m.item_type,
+                "text": m.text,
+                "link": m.link.link_context.link_url if m.link else None,
+                "shared_post": _shared_post_info(m),
+            })
+        result_msgs.sort(key=lambda msg: msg["timestamp"])
+        return {"success": True, "thread_title": thread.thread_title, "messages": result_msgs}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 
 @mcp.tool()
