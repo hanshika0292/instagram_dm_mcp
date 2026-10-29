@@ -1,5 +1,18 @@
 # Instagram DM MCP server
 
+> **Maintained fork of [trypeggy/instagram_dm_mcp](https://github.com/trypeggy/instagram_dm_mcp).** Upstream hasn't
+> changed since mid-2025, and the instagrapi 2.1.5 it pins is now rejected by Instagram. This fork adds:
+>
+> - **instagrapi 3.0.26**, which fixes "Your version of Instagram is out of date" ([upstream PR #14](https://github.com/trypeggy/instagram_dm_mcp/pull/14))
+> - **shared reels and posts work**: `list_messages` no longer crashes on them, and newer `xma_share` reel shares are read ([#15](https://github.com/trypeggy/instagram_dm_mcp/pull/15))
+> - **no hangs**: a verification prompt raises an error instead of freezing the stdio server, and a saved session is reused without logging in again ([#16](https://github.com/trypeggy/instagram_dm_mcp/pull/16))
+> - **a new `list_messages_compact` tool** for scanning a thread with less context ([#17](https://github.com/trypeggy/instagram_dm_mcp/pull/17))
+>
+> Instagram often rejects password logins from scripts (instagrapi
+> [#2807](https://github.com/subzeroid/instagrapi/issues/2807), [#2881](https://github.com/subzeroid/instagrapi/issues/2881)).
+> If yours fails, create the session file from a browser `sessionid` instead, as
+> [reel-digest's `login_once.py`](https://github.com/hanshika0292/reel-digest/blob/main/login_once.py) does.
+
 This is a Model Context Protocol (MCP) server for sending instagram Direct Messages.
 
 With this you can send Instagram Direct Messages from your account (more capabilities coming soon).
@@ -28,7 +41,7 @@ https://github.com/user-attachments/assets/9c945f25-4484-4223-8d6b-5bf31243464c
 1. **Clone this repository**
 
    ```bash
-   git clone https://github.com/trypeggy/instagram_dm_mcp.git
+   git clone https://github.com/hanshika0292/instagram_dm_mcp.git
    cd instagram_dm_mcp
    ```
 
